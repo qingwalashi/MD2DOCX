@@ -437,114 +437,160 @@ async function convertToWord() {
         return;
     }
 
-    // 获取当前配置
-    const templateType = document.getElementById('template-select').value;
-    let template;
-    
-    if (templateType === 'custom') {
-        template = getConfigFromForm();
-    } else {
-        // 尝试从配置文本框获取最新配置
-        const configTextarea = document.getElementById('template-config');
-        const newConfig = yamlToObject(configTextarea.value);
-        template = newConfig || templates[templateType];
-    }
+    // 显示进度条
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    progressContainer.classList.remove('hidden');
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
 
-    // 将毫米转换为twips (1mm = 56.7twips)
-    const margins = {
-        top: Math.round(template.margins.top * 56.7),
-        right: Math.round(template.margins.right * 56.7),
-        bottom: Math.round(template.margins.bottom * 56.7),
-        left: Math.round(template.margins.left * 56.7)
-    };
+    try {
+        // 获取当前配置
+        const templateType = document.getElementById('template-select').value;
+        let template;
+        
+        if (templateType === 'custom') {
+            template = getConfigFromForm();
+        } else {
+            // 尝试从配置文本框获取最新配置
+            const configTextarea = document.getElementById('template-config');
+            const newConfig = yamlToObject(configTextarea.value);
+            template = newConfig || templates[templateType];
+        }
 
-    // 解析Markdown
-    const htmlContent = marked.parse(markdownText);
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
+        // 更新进度
+        progressBar.style.width = '20%';
+        progressText.textContent = '20%';
 
-    // 创建Word文档
-    const doc = new docx.Document({
-        styles: {
-            paragraphStyles: [
-                {
-                    id: "Heading1",
-                    name: "Heading 1",
-                    basedOn: "Normal",
-                    next: "Normal",
-                    quickFormat: true,
-                    run: {
-                        size: template.h1FontSize * 2,
-                        bold: true,
-                        font: template.h1FontFamily
+        // 将毫米转换为twips (1mm = 56.7twips)
+        const margins = {
+            top: Math.round(template.margins.top * 56.7),
+            right: Math.round(template.margins.right * 56.7),
+            bottom: Math.round(template.margins.bottom * 56.7),
+            left: Math.round(template.margins.left * 56.7)
+        };
+
+        // 解析Markdown
+        const htmlContent = marked.parse(markdownText);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlContent;
+
+        // 更新进度
+        progressBar.style.width = '40%';
+        progressText.textContent = '40%';
+
+        // 创建Word文档
+        const doc = new docx.Document({
+            styles: {
+                paragraphStyles: [
+                    {
+                        id: "Heading1",
+                        name: "Heading 1",
+                        basedOn: "Normal",
+                        next: "Normal",
+                        quickFormat: true,
+                        run: {
+                            size: template.h1FontSize * 2,
+                            bold: true,
+                            font: template.h1FontFamily
+                        }
+                    },
+                    {
+                        id: "Heading2",
+                        name: "Heading 2",
+                        basedOn: "Normal",
+                        next: "Normal",
+                        quickFormat: true,
+                        run: {
+                            size: template.h2FontSize * 2,
+                            bold: true,
+                            font: template.h2FontFamily
+                        }
+                    },
+                    {
+                        id: "Heading3",
+                        name: "Heading 3",
+                        basedOn: "Normal",
+                        next: "Normal",
+                        quickFormat: true,
+                        run: {
+                            size: template.h3FontSize * 2,
+                            bold: true,
+                            font: template.h3FontFamily
+                        }
+                    },
+                    {
+                        id: "Heading4",
+                        name: "Heading 4",
+                        basedOn: "Normal",
+                        next: "Normal",
+                        quickFormat: true,
+                        run: {
+                            size: template.h4FontSize * 2,
+                            bold: true,
+                            font: template.h4FontFamily
+                        }
+                    },
+                    {
+                        id: "Normal",
+                        name: "Normal",
+                        run: {
+                            size: template.fontSize * 2,
+                            font: template.fontFamily
+                        }
+                    },
+                    {
+                        id: "ListParagraph",
+                        name: "List Paragraph",
+                        basedOn: "Normal",
+                        run: {
+                            size: template.fontSize * 2,
+                            font: template.fontFamily
+                        }
                     }
-                },
-                {
-                    id: "Heading2",
-                    name: "Heading 2",
-                    basedOn: "Normal",
-                    next: "Normal",
-                    quickFormat: true,
-                    run: {
-                        size: template.h2FontSize * 2,
-                        bold: true,
-                        font: template.h2FontFamily
-                    }
-                },
-                {
-                    id: "Heading3",
-                    name: "Heading 3",
-                    basedOn: "Normal",
-                    next: "Normal",
-                    quickFormat: true,
-                    run: {
-                        size: template.h3FontSize * 2,
-                        bold: true,
-                        font: template.h3FontFamily
-                    }
-                },
-                {
-                    id: "Heading4",
-                    name: "Heading 4",
-                    basedOn: "Normal",
-                    next: "Normal",
-                    quickFormat: true,
-                    run: {
-                        size: template.h4FontSize * 2,
-                        bold: true,
-                        font: template.h4FontFamily
-                    }
-                },
-                {
-                    id: "Normal",
-                    name: "Normal",
-                    run: {
-                        size: template.fontSize * 2,
-                        font: template.fontFamily
-                    }
-                },
-                {
-                    id: "ListParagraph",
-                    name: "List Paragraph",
-                    basedOn: "Normal",
-                    run: {
-                        size: template.fontSize * 2,
-                        font: template.fontFamily
-                    }
-                }
-            ]
-        },
-        sections: [{
-            properties: {
-                page: {
-                    margin: margins
-                }
+                ]
             },
-            children: convertHtmlToDocx(tempDiv, template)
-        }]
-    });
+            sections: [{
+                properties: {
+                    page: {
+                        margin: margins
+                    }
+                },
+                children: convertHtmlToDocx(tempDiv, template)
+            }]
+        });
 
-    // 生成并下载文档
-    const blob = await docx.Packer.toBlob(doc);
-    saveAs(blob, 'converted-document.docx');
+        // 更新进度
+        progressBar.style.width = '60%';
+        progressText.textContent = '60%';
+
+        // 生成文档
+        const blob = await docx.Packer.toBlob(doc);
+
+        // 更新进度
+        progressBar.style.width = '80%';
+        progressText.textContent = '80%';
+
+        // 生成带时间戳的文件名
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const fileName = `md2docx-${timestamp}.docx`;
+
+        // 保存文件
+        saveAs(blob, fileName);
+
+        // 完成进度
+        progressBar.style.width = '100%';
+        progressText.textContent = '100%';
+
+        // 2秒后隐藏进度条
+        setTimeout(() => {
+            progressContainer.classList.add('hidden');
+        }, 2000);
+
+    } catch (error) {
+        console.error('转换过程中发生错误:', error);
+        alert('转换过程中发生错误，请重试！');
+        progressContainer.classList.add('hidden');
+    }
 } 
